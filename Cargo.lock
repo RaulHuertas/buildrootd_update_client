@@ -3,5 +3,5 @@
 version = 4
 
 [[package]]
-name = "rauc_update_daemon"
+name = "rauc_updates_daemon"
 version = "0.1.0"
