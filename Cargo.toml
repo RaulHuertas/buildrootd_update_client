@@ -8,5 +8,7 @@ edition = "2021"
 
 #[target.arm-buildroot-linux-gnueabihf]
 #linker = "arm-buildroot-linux-gnueabihf-gcc"
+[features]
 
+git = ["git2"] # Support indicating git modifications
 
