@@ -1,5 +1,5 @@
 [package]
-name = "rauc_update_client"
+name = "rauc_update_daemon"
 version = "0.1.0"
 edition = "2021"
 
