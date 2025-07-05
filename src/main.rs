@@ -1,5 +1,7 @@
 use error_chain::error_chain;
+use std::collections::HashMap;
 use std::io::Read;
+use clap::{Parser, ArgGroup};
 
 error_chain! {
     foreign_links {
@@ -8,8 +10,35 @@ error_chain! {
     }
 }
 
+
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+struct Args {
+    #[arg(short, long)]
+    server_base_url: String,
+}
+
+fn check_update_request(args:&Args)-> HashMap<String, String> {
+    //create a hashmap to hold the body data
+    //let mut body_data = HashMap::new();
+    let mut body_data = HashMap::<String,String>::new();
+    body_data.insert("key1".to_string(), "value1".to_string());
+    body_data.insert("key2".to_string(), "value2".to_string());
+
+    body_data.insert("role".to_string(), "kiosk".to_string());
+    body_data.insert("phy_id".to_string(), "kiosk".to_string());
+
+    body_data
+}
+
 fn main() -> Result<()> {
-    let mut res = reqwest::blocking::get("http://httpbin.org/get")?;
+    let args = Args::parse();
+
+    let client = reqwest::blocking::Client::new();
+    let mut res = client.post(args.server_base_url+"/deviceCheckUpdate")
+    .body("test")
+    .header("Content-Type", "application/json")
+    .send()?;
     let mut body = String::new();
     res.read_to_string(&mut body)?;
 
