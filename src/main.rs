@@ -2,6 +2,8 @@ use error_chain::error_chain;
 use std::collections::HashMap;
 use std::io::Read;
 use clap::{Parser, ArgGroup};
+use std::env;
+use std::fs;
 
 error_chain! {
     foreign_links {
@@ -16,6 +18,12 @@ error_chain! {
 struct Args {
     #[arg(short, long)]
     server_base_url: String,
+    network_interface : String,
+    description: String,
+}
+
+fn get_mac_address(args: &Args) -> String {
+    fs::read_to_string("/sys/class/net/".to_owned() + &args.network_interface + "/address").unwrap_or("00:00:00:00:00:00".to_string())
 }
 
 fn check_update_request(args:&Args)-> HashMap<String, String> {
@@ -26,7 +34,9 @@ fn check_update_request(args:&Args)-> HashMap<String, String> {
     body_data.insert("key2".to_string(), "value2".to_string());
 
     body_data.insert("role".to_string(), "kiosk".to_string());
-    body_data.insert("phy_id".to_string(), "kiosk".to_string());
+    body_data.insert("phy_id".to_string(), get_mac_address(args));
+    body_data.insert("role".to_string(), args.description.clone());
+
 
     body_data
 }
