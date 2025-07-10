@@ -41,7 +41,7 @@ struct MMPlatformInfo {
 
 
 #[derive(Deserialize,Debug,Serialize)]
-struct CheckUpdateArguments{
+struct CheckUpdateRequest{
     pub role : String,
     pub phy_id: String,
     pub description : String,
@@ -49,12 +49,12 @@ struct CheckUpdateArguments{
     pub last_updated_timestamp: chrono::DateTime<chrono::Utc>,
 }
 
-impl CheckUpdateArguments{
+impl CheckUpdateRequest {
     pub fn new(
         role:&String,
         phy_id:&String
     )->Self{
-       CheckUpdateArguments{
+       CheckUpdateRequest{
        role:role.clone(),
        phy_id:phy_id.clone(),
        description: "".to_string(),
@@ -66,9 +66,9 @@ impl CheckUpdateArguments{
     pub fn load(
        platform_info:&MMPlatformInfo,
        args:&Args,
-    )¿4>Self{
+    )->Self{
 
-       CheckUpdateArguments{
+       CheckUpdateRequest{
        role:platform_info.role.clone(),
        phy_id:get_mac_address(args),
        description: platform_info.description.clone(),
@@ -77,6 +77,17 @@ impl CheckUpdateArguments{
        } 
     }
 }
+
+#[derive(Deserialize,Debug,Serialize)]
+struct CheckUpdateResponse {
+    update_available: bool
+}
+
+impl CheckUpdateResponse {
+    pub fn new() -> Self {
+        CheckUpdateResponse { update_available: false }
+    }
+} 
 
 fn check_update_request(args:&Args)-> HashMap<String, String> {
     let mut body_data = HashMap::<String,String>::new();
@@ -89,13 +100,13 @@ fn check_update_request(args:&Args)-> HashMap<String, String> {
 
 fn main() -> Result<()> {
     let args = Args::parse();
-    let device_info = check_update_request(&args);
-    let mut mac_address = get_mac_address(&args);
-    let dev = CheckUpdateArguments::new(&args.network_interface, &mac_address);
     
     let json_file_path = Path::new("test.json");
     let file = File::open(json_file_path).expect("file not found");
     let platformInfo :MMPlatformInfo = serde_json::from_reader(file).expect("error while reading");
+
+    let dev = CheckUpdateRequest::load(&platformInfo, &args);
+    
 
 
 
@@ -105,13 +116,16 @@ fn main() -> Result<()> {
     .json(&dev)
     .header("Content-Type", "application/json")
     .send()?;
-    let mut body = String::new();
-    res.read_to_string(&mut body)?;
 
-    println!("Status: {}", res.status());
+    //let update_response = CheckUpdateResponse::new();
+    let update_response = res.json::<CheckUpdateResponse>().unwrap();
+    //#let mut body = String::new();
+    //res.read_to_string(&mut body)?;
+
+    //println!("Status: {}", res.status());
     //println!("Headers:\n{:#?}", res.headers());
-    println!("Body:\n{}", body);
-
+    //println!("Body:\n{}", body);
+    println!("Update available: {}", update_response.update_available);
     Ok(())
 }
 
