@@ -4,10 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+chrono = {  version="0.4.41", features=["serde"] }
 clap = {version="4.5.40", features=["derive"]}
 error-chain = "0.12.4"
 reqwest = {version="0.12.22",features=["blocking","json"]}
-
-
-#[target.arm-buildroot-linux-gnueabihf]
-#linker = "arm-buildroot-linux-gnueabihf-gcc"
+serde = { version = "1.0.219", features = ["derive"] }
+serde_json = {version = "1.0.140"}
