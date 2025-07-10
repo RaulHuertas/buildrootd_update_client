@@ -25,6 +25,9 @@ struct Args {
     network_interface : String,
     #[arg(short, long)]
     description: String,
+    #[arg(short, long)]
+    download_path: String,
+
 }
 
 fn get_mac_address(args: &Args) -> String {
@@ -106,10 +109,6 @@ fn main() -> Result<()> {
     let platformInfo :MMPlatformInfo = serde_json::from_reader(file).expect("error while reading");
 
     let dev = CheckUpdateRequest::load(&platformInfo, &args);
-    
-
-
-
 
     let client = reqwest::blocking::Client::new();
     let mut res = client.post(args.server_base_url+"/deviceCheckUpdate")
@@ -117,15 +116,12 @@ fn main() -> Result<()> {
     .header("Content-Type", "application/json")
     .send()?;
 
-    //let update_response = CheckUpdateResponse::new();
     let update_response = res.json::<CheckUpdateResponse>().unwrap();
-    //#let mut body = String::new();
-    //res.read_to_string(&mut body)?;
-
-    //println!("Status: {}", res.status());
-    //println!("Headers:\n{:#?}", res.headers());
-    //println!("Body:\n{}", body);
     println!("Update available: {}", update_response.update_available);
+    if !update_response.update_available {
+        println!("No update available.");
+        return Ok(());
+    }
     Ok(())
 }
 
