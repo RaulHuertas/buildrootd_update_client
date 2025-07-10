@@ -6,6 +6,8 @@ use std::fs;
 use chrono::{Local, DateTime};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use std::path::Path;
+use std::fs::File;
 
 error_chain! {
     foreign_links {
@@ -28,6 +30,15 @@ struct Args {
 fn get_mac_address(args: &Args) -> String {
     fs::read_to_string("/sys/class/net/".to_owned() + &args.network_interface + "/address").unwrap_or("00:00:00:00:00:00".to_string())
 }
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct MMPlatformInfo {
+    version: i32,
+    description: String,
+    role: String,
+}
+
 
 #[derive(Deserialize,Debug,Serialize)]
 struct CheckUpdateArguments{
@@ -53,16 +64,15 @@ impl CheckUpdateArguments{
     }
 
     pub fn load(
-        role:&String,
-        phy_id:&String
-    )->Self{
-       let description = fs::read_to_string("/opt/mmdescription").unwrap_or("No description".to_string());
+       platform_info:&MMPlatformInfo,
+       args:&Args,
+    )¿4>Self{
 
        CheckUpdateArguments{
-       role:role.clone(),
-       phy_id:phy_id.clone(),
-       description: description.to_string(),
-       installed_version: 0,
+       role:platform_info.role.clone(),
+       phy_id:get_mac_address(args),
+       description: platform_info.description.clone(),
+       installed_version: platform_info.version,
        last_updated_timestamp : Local::now().into(),
        } 
     }
@@ -82,6 +92,13 @@ fn main() -> Result<()> {
     let device_info = check_update_request(&args);
     let mut mac_address = get_mac_address(&args);
     let dev = CheckUpdateArguments::new(&args.network_interface, &mac_address);
+    
+    let json_file_path = Path::new("test.json");
+    let file = File::open(json_file_path).expect("file not found");
+    let platformInfo :MMPlatformInfo = serde_json::from_reader(file).expect("error while reading");
+
+
+
 
     let client = reqwest::blocking::Client::new();
     let mut res = client.post(args.server_base_url+"/deviceCheckUpdate")
@@ -92,7 +109,7 @@ fn main() -> Result<()> {
     res.read_to_string(&mut body)?;
 
     println!("Status: {}", res.status());
-    println!("Headers:\n{:#?}", res.headers());
+    //println!("Headers:\n{:#?}", res.headers());
     println!("Body:\n{}", body);
 
     Ok(())
