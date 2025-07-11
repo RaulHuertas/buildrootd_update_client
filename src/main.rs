@@ -25,13 +25,13 @@ struct Args {
     server_base_url: String,
     #[arg(short, long)]
     network_interface : String,
-    #[arg(short, long)]
+    #[arg( long)]
     description: String,
     #[arg(short, long)]
     download_path: String,
     #[arg(short, long, default_value_t = 2147483648)]
     max_download_size: i64,
-    #[arg(short, long, default_value_t = 1_000_000)]
+    #[arg( long, default_value_t = 1_000_000)]
     download_buffer_size: i64,
 }
 
@@ -152,8 +152,10 @@ fn main() -> Result<()> {
     
     //remove old file if exists
     let download_file = args.download_path.clone()+"/update.raucb";
+    println!("Downloading update to: {}", download_file);
+    println!("Download size: {} bytes", download_size);
     if Path::new(&download_file).exists() {
-        fs::remove_file(&args.download_path)?;
+        fs::remove_file(&download_file)?;
     }
     let mut downloaded_range : i64 = 0;
     while downloaded_range < download_size {
@@ -181,6 +183,7 @@ fn main() -> Result<()> {
         file.flush()?;
         
         downloaded_range += to_download_now;
+        println!("Downloaded {} bytes, total: {}", downloaded_range, download_size);
 
     }
 
