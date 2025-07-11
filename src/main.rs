@@ -1,15 +1,15 @@
 use error_chain::error_chain;
 use std::collections::HashMap;
 use std::io::Read;
-use clap::{Parser, ArgGroup};
+use clap::Parser;
 use std::fs;
-use chrono::{Local, DateTime};
+use chrono::Local;
 use serde::{Deserialize, Serialize};
-use serde_json::json;
 use std::path::Path;
 use std::fs::File;
 use std::io::prelude::*;
-use std::cmp;
+
+use std::process::Command;
 
 error_chain! {
     foreign_links {
@@ -20,19 +20,19 @@ error_chain! {
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
-struct Args {
+pub struct Args {
     #[arg(short, long)]
-    server_base_url: String,
+    pub server_base_url: String,
     #[arg(short, long)]
-    network_interface : String,
+    pub network_interface : String,
     #[arg( long)]
-    description: String,
+    pub description: String,
     #[arg(short, long)]
-    download_path: String,
+    pub download_path: String,
     #[arg(short, long, default_value_t = 2147483648)]
-    max_download_size: i64,
+    pub max_download_size: i64,
     #[arg( long, default_value_t = 1_000_000)]
-    download_buffer_size: i64,
+    pub download_buffer_size: i64,
 }
 
 fn get_mac_address(args: &Args) -> String {
@@ -41,15 +41,15 @@ fn get_mac_address(args: &Args) -> String {
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct MMPlatformInfo {
-    version: i32,
-    description: String,
-    role: String,
+pub struct MMPlatformInfo {
+    pub version: i32,
+    pub description: String,
+    pub role: String,
 }
 
 
 #[derive(Deserialize,Debug,Serialize)]
-struct CheckUpdateRequest{
+pub struct CheckUpdateRequest{
     pub role : String,
     pub phy_id: String,
     pub description : String,
@@ -86,9 +86,9 @@ impl CheckUpdateRequest {
     }
 }
 
-#[derive(Deserialize,Debug,Serialize)]
-struct CheckUpdateResponse {
-    update_available: bool
+#[derive(Deserialize, Default,Debug,Serialize)]
+pub struct CheckUpdateResponse {
+    pub update_available: bool
 }
 
 impl CheckUpdateResponse {
@@ -97,26 +97,17 @@ impl CheckUpdateResponse {
     }
 } 
 
-fn check_update_request(args:&Args)-> HashMap<String, String> {
-    let mut body_data = HashMap::<String,String>::new();
-    body_data.insert("role".to_string(), "kiosk".to_string());
-    body_data.insert("phy_id".to_string(), get_mac_address(args));
-    body_data.insert("description".to_string(), args.description.clone());
-    body_data.insert("installed_version".to_string(), "0".to_string()); 
-    body_data
-}
-
 fn main() -> Result<()> {
     let args = Args::parse();
     
     let json_file_path = Path::new("test.json");
     let file = File::open(json_file_path).expect("file not found");
-    let platformInfo :MMPlatformInfo = serde_json::from_reader(file).expect("error while reading");
+    let platform_info :MMPlatformInfo = serde_json::from_reader(file).expect("error while reading");
 
-    let dev = CheckUpdateRequest::load(&platformInfo, &args);
+    let dev = CheckUpdateRequest::load(&platform_info, &args);
 
     let client = reqwest::blocking::Client::new();
-    let mut res = client.post(args.server_base_url.clone()+"/deviceCheckUpdate")
+    let res = client.post(args.server_base_url.clone()+"/deviceCheckUpdate")
     .json(&dev)
     .header("Content-Type", "application/json")
     .send()?;
@@ -129,7 +120,7 @@ fn main() -> Result<()> {
     }
     //There is a new update available, download it
     let download_header_client = reqwest::blocking::Client::new(); 
-    let mut dowload_header_response = download_header_client.head(args.server_base_url.clone() + "/downloadUpdate")
+    let dowload_header_response = download_header_client.head(args.server_base_url.clone() + "/downloadUpdate")
         .send()?;
     if !dowload_header_response.status().is_success() {
         println!("Failed to get download header, trying later: {}", dowload_header_response.status());
@@ -186,6 +177,21 @@ fn main() -> Result<()> {
         println!("Downloaded {} bytes, total: {}", downloaded_range, download_size);
 
     }
+    //////////////////////////////
+    //Install the update
+    //////////////////////////////
+    Command::new("rauc")
+        .arg("install")
+        .arg(download_file.clone())
+        .output()
+        .expect("failed to execute rauc install");
+
+    //////////////////////////////
+    //Reboot the system to apply the update
+    //////////////////////////////
+    Command::new("reboot")
+        .output()
+        .expect("failed to reboot after install");
 
     Ok(())
 
