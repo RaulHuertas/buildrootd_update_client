@@ -25,8 +25,8 @@ pub struct Args {
     pub server_base_url: String,
     #[arg(short, long)]
     pub network_interface : String,
-    #[arg( long)]
-    pub description: String,
+    #[arg(short, long)]
+    pub platform_info_file: String,
     #[arg(short, long)]
     pub download_path: String,
     #[arg(short, long, default_value_t = 2147483648)]
@@ -102,8 +102,8 @@ impl CheckUpdateResponse {
 fn main() -> Result<()> {
     let args = Args::parse();
     
-    let json_file_path = Path::new("test.json");
-    let file = File::open(json_file_path).expect("file not found");
+    let json_file_path = Path::new(args.platform_info_file.as_str());
+    let file = File::open(json_file_path).expect("platform file not found");
     let platform_info :MMPlatformInfo = serde_json::from_reader(file).expect("error while reading");
 
     let dev = CheckUpdateRequest::load(&platform_info, &args);
