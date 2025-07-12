@@ -36,7 +36,8 @@ pub struct Args {
 }
 
 fn get_mac_address(args: &Args) -> String {
-    fs::read_to_string("/sys/class/net/".to_owned() + &args.network_interface + "/address").unwrap_or("00:00:00:00:00:00".to_string())
+    let mac_file_locationd = "/sys/class/net/".to_owned() + &args.network_interface + "/address";
+    fs::read_to_string(mac_file_locationd).unwrap_or("00:00:00:00:00:00".to_string())
 }
 
 #[derive(Debug, Deserialize)]
