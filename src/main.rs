@@ -182,17 +182,18 @@ fn main() -> Result<()> {
     //////////////////////////////
     //Install the update
     //////////////////////////////
-    Command::new("rauc")
+    let update_command_result = Command::new("rauc")
         .arg("install")
         .arg(download_file.clone())
-        .output()
-        .expect("failed to execute rauc install");
+        .status().expect("failed to execute rauc install");
+     //println!("update commmand result: {} ",update_command_result);
+     //update_command_result.expect("failed to execute rauc install");
 
     //////////////////////////////
     //Reboot the system to apply the update
     //////////////////////////////
     Command::new("reboot")
-        .output()
+        .status()
         .expect("failed to reboot after install");
 
     Ok(())
